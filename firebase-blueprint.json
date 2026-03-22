@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "HR staff or admin user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "hr"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "employee": {
+      "title": "Employee",
+      "description": "Employee record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "departmentId": { "type": "string" },
+        "position": { "type": "string" },
+        "salary": { "type": "number" },
+        "joinDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["active", "on-leave", "terminated"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "departmentId", "position", "status"]
+    },
+    "department": {
+      "title": "Department",
+      "description": "Company department",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "managerId": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "employeeId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "checkIn": { "type": "string", "format": "date-time" },
+        "checkOut": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["present", "absent", "late", "on-leave"] }
+      },
+      "required": ["employeeId", "date", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "/employees/{employeeId}": {
+      "schema": "employee",
+      "description": "Employee records"
+    },
+    "/departments/{departmentId}": {
+      "schema": "department",
+      "description": "Company departments"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "attendance",
+      "description": "Attendance logs"
+    }
+  }
+}

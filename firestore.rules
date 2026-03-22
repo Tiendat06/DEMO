@@ -1,0 +1,121 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: userId (Firebase Auth UID)
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - displayName: string (optional)
+//   - role: string (required, 'admin' or 'hr')
+//   - createdAt: timestamp (required)
+//
+// Collection: employees
+// Document ID: auto-generated
+// Fields:
+//   - fullName: string (required)
+//   - email: string (required)
+//   - phone: string (optional)
+//   - departmentId: string (required)
+//   - position: string (required)
+//   - salary: number (required)
+//   - joinDate: string (required, ISO date)
+//   - status: string (required, 'active', 'on-leave', 'terminated')
+//   - createdAt: timestamp (required)
+//   - updatedAt: timestamp (required)
+//
+// Collection: departments
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - description: string (optional)
+//   - managerId: string (optional)
+//
+// Collection: attendance
+// Document ID: auto-generated
+// Fields:
+//   - employeeId: string (required)
+//   - date: string (required, ISO date)
+//   - checkIn: timestamp (optional)
+//   - checkOut: timestamp (optional)
+//   - status: string (required, 'present', 'absent', 'late', 'on-leave')
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "tadat290903@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isHR() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'hr' || isAdmin());
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // User Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && 
+        request.resource.data.role == 'hr' && // Default role for new users
+        isValidEmail(request.resource.data.email);
+      allow update: if isAuthenticated() && isAdmin();
+      allow delete: if isAuthenticated() && isAdmin();
+    }
+
+    // ===============================================================
+    // Employee Rules
+    // ===============================================================
+    match /employees/{employeeId} {
+      allow read: if isHR();
+      allow create, update: if isHR() && 
+        request.resource.data.fullName is string &&
+        request.resource.data.fullName.size() > 0 &&
+        request.resource.data.fullName.size() < 100 &&
+        isValidEmail(request.resource.data.email);
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Department Rules
+    // ===============================================================
+    match /departments/{departmentId} {
+      allow read: if isHR();
+      allow create, update: if isAdmin() &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() < 50;
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Attendance Rules
+    // ===============================================================
+    match /attendance/{attendanceId} {
+      allow read: if isHR();
+      allow create, update: if isHR();
+      allow delete: if isAdmin();
+    }
+  }
+}
